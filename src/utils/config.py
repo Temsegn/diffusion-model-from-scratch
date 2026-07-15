@@ -9,7 +9,7 @@ Why this exists:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Optional
 
 
 @dataclass
@@ -43,5 +43,9 @@ class TrainConfig:
 
     # --- Checkpoints ---
     checkpoint_dir: str = "./checkpoints"
+    # Optional persistent backup (e.g. Google Drive on Colab).
+    # When set, checkpoints and loss history are copied here after each save
+    # and again at the end of training.
+    backup_dir: Optional[str] = None
     # Save full checkpoint at these epoch numbers (1-indexed end of epoch)
     save_epochs: List[int] = field(default_factory=lambda: [10, 50, 100])

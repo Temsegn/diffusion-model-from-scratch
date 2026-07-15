@@ -32,7 +32,12 @@ from src.datasets.cifar10 import get_cifar10_dataloader
 from src.diffusion.losses import ddpm_loss
 from src.diffusion.scheduler import NoiseScheduler
 from src.models.unet import build_unet
-from src.training.checkpoint import checkpoint_path_for_epoch, save_checkpoint
+from src.training.checkpoint import (
+    backup_training_artifacts,
+    checkpoint_path_for_epoch,
+    save_checkpoint,
+    save_loss_history,
+)
 from src.utils.config import TrainConfig
 from src.utils.device import get_device
 from src.utils.seed import set_seed
@@ -74,6 +79,19 @@ class Trainer:
             f"[Trainer] epochs={self.cfg.epochs} batch={self.cfg.batch_size} "
             f"lr={self.cfg.learning_rate} T={self.cfg.timesteps}"
         )
+        if self.cfg.backup_dir:
+            print(f"[Trainer] backup_dir={self.cfg.backup_dir}")
+
+    def _backup_artifacts(self) -> None:
+        """Copy checkpoints to backup_dir if configured."""
+        if not self.cfg.backup_dir:
+            return
+        backup_path = backup_training_artifacts(
+            checkpoint_dir=self.checkpoint_dir,
+            backup_dir=self.cfg.backup_dir,
+            loss_history=self.loss_history,
+        )
+        print(f"  Backed up artifacts → {backup_path}")
 
     def train_one_epoch(self, epoch: int) -> float:
         """Run one epoch; return mean batch loss."""
@@ -128,5 +146,8 @@ class Trainer:
                     extra={"loss_history": list(self.loss_history)},
                 )
                 print(f"  Saved checkpoint → {path}")
+                self._backup_artifacts()
 
+        save_loss_history(self.checkpoint_dir, self.loss_history)
+        self._backup_artifacts()
         return self.loss_history

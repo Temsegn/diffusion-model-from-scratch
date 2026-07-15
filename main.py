@@ -37,6 +37,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Directory to save checkpoints",
     )
+    train_p.add_argument(
+        "--backup-dir",
+        type=str,
+        default=None,
+        help="Persistent backup folder (e.g. Google Drive path on Colab)",
+    )
+    train_p.add_argument(
+        "--data-root",
+        type=str,
+        default=None,
+        help="Dataset download/cache directory",
+    )
 
     return parser
 
@@ -61,6 +73,10 @@ def main(argv: list[str] | None = None) -> None:
             cfg.seed = args.seed
         if args.checkpoint_dir is not None:
             cfg.checkpoint_dir = args.checkpoint_dir
+        if args.backup_dir is not None:
+            cfg.backup_dir = args.backup_dir
+        if args.data_root is not None:
+            cfg.data_root = args.data_root
 
         trainer = Trainer(cfg)
         trainer.train()

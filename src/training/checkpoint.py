@@ -19,8 +19,10 @@ Files written at milestone epochs:
 
 from __future__ import annotations
 
+import json
+import shutil
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.nn as nn
@@ -87,3 +89,53 @@ def load_checkpoint(
 def checkpoint_path_for_epoch(checkpoint_dir: Union[str, Path], epoch: int) -> Path:
     """Return `checkpoints/ddpm_epoch_{epoch}.pt`."""
     return Path(checkpoint_dir) / f"ddpm_epoch_{epoch}.pt"
+
+
+def save_loss_history(
+    checkpoint_dir: Union[str, Path],
+    loss_history: List[float],
+) -> Path:
+    """Save per-epoch losses as JSON next to checkpoints."""
+    path = Path(checkpoint_dir) / "loss_history.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "epochs": list(range(1, len(loss_history) + 1)),
+        "loss_history": [float(x) for x in loss_history],
+    }
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return path
+
+
+def backup_training_artifacts(
+    checkpoint_dir: Union[str, Path],
+    backup_dir: Union[str, Path],
+    loss_history: Optional[List[float]] = None,
+) -> Path:
+    """
+    Copy all checkpoint files (and optional loss history) to a backup folder.
+
+    Useful on Google Colab to persist models to Google Drive:
+
+        cfg.backup_dir = "/content/drive/MyDrive/ddpm-checkpoints"
+    """
+    checkpoint_dir = Path(checkpoint_dir)
+    backup_dir = Path(backup_dir)
+    backup_dir.mkdir(parents=True, exist_ok=True)
+
+    copied = 0
+    for ckpt in sorted(checkpoint_dir.glob("ddpm_epoch_*.pt")):
+        shutil.copy2(ckpt, backup_dir / ckpt.name)
+        copied += 1
+
+    loss_path = checkpoint_dir / "loss_history.json"
+    if loss_history is not None:
+        save_loss_history(checkpoint_dir, loss_history)
+    if loss_path.exists():
+        shutil.copy2(loss_path, backup_dir / loss_path.name)
+
+    if copied == 0 and not (backup_dir / "loss_history.json").exists():
+        raise FileNotFoundError(
+            f"No checkpoints found in {checkpoint_dir} to back up."
+        )
+
+    return backup_dir
