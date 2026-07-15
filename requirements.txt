@@ -1,0 +1,7 @@
+# PyTorch dependencies for DDPM training (install on Colab / local GPU)
+# torch and torchvision versions are environment-specific; Colab usually provides them.
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+tqdm>=4.65.0
+matplotlib>=3.7.0
