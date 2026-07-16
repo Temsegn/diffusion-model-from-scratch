@@ -89,6 +89,20 @@ class NoiseScheduler:
         self.sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod)
         self.sqrt_one_minus_alphas_cumprod = torch.sqrt(1.0 - alphas_cumprod)
 
+        # Reverse process: ᾱ_{t-1} with ᾱ_{-1} := 1 for the t=0 edge case
+        alphas_cumprod_prev = torch.cat(
+            [torch.ones(1, dtype=torch.float32, device=alphas_cumprod.device), alphas_cumprod[:-1]]
+        )
+        # β̃_t = ((1 - ᾱ_{t-1}) / (1 - ᾱ_t)) · β_t  (posterior variance)
+        posterior_variance = betas * (1.0 - alphas_cumprod_prev) / (1.0 - alphas_cumprod)
+        # Clamp for numerical stability at t=0 where variance is ~0
+        posterior_variance = torch.clamp(posterior_variance, min=1e-20)
+
+        self.alphas_cumprod_prev = alphas_cumprod_prev
+        self.posterior_variance = posterior_variance
+        self.sqrt_recip_alphas = torch.sqrt(1.0 / alphas)
+        self.sqrt_alphas_cumprod_prev = torch.sqrt(alphas_cumprod_prev)
+
     @classmethod
     def from_config(
         cls,
@@ -112,6 +126,10 @@ class NoiseScheduler:
         self.sqrt_one_minus_alphas_cumprod = self.sqrt_one_minus_alphas_cumprod.to(
             device
         )
+        self.alphas_cumprod_prev = self.alphas_cumprod_prev.to(device)
+        self.posterior_variance = self.posterior_variance.to(device)
+        self.sqrt_recip_alphas = self.sqrt_recip_alphas.to(device)
+        self.sqrt_alphas_cumprod_prev = self.sqrt_alphas_cumprod_prev.to(device)
         return self
 
     def get_alphas_cumprod(self, t: torch.Tensor) -> torch.Tensor:

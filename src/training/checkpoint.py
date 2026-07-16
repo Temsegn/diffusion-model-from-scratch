@@ -110,9 +110,10 @@ def backup_training_artifacts(
     checkpoint_dir: Union[str, Path],
     backup_dir: Union[str, Path],
     loss_history: Optional[List[float]] = None,
+    sample_dir: Optional[Union[str, Path]] = None,
 ) -> Path:
     """
-    Copy all checkpoint files (and optional loss history) to a backup folder.
+    Copy checkpoints, loss history, and clarity sample grids to a backup folder.
 
     Useful on Google Colab to persist models to Google Drive:
 
@@ -132,6 +133,14 @@ def backup_training_artifacts(
         save_loss_history(checkpoint_dir, loss_history)
     if loss_path.exists():
         shutil.copy2(loss_path, backup_dir / loss_path.name)
+
+    if sample_dir is not None:
+        sample_dir = Path(sample_dir)
+        sample_backup = backup_dir / "samples"
+        sample_backup.mkdir(parents=True, exist_ok=True)
+        for png in sorted(sample_dir.glob("samples_epoch_*.png")):
+            shutil.copy2(png, sample_backup / png.name)
+            copied += 1
 
     if copied == 0 and not (backup_dir / "loss_history.json").exists():
         raise FileNotFoundError(

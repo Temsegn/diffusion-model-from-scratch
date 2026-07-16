@@ -52,3 +52,15 @@ class TrainConfig:
     save_every: int = 1
     # Extra milestone epochs (always saved even if not on the save_every grid)
     save_epochs: List[int] = field(default_factory=lambda: [10, 50, 100])
+
+    # --- Sampling / clarity grids ---
+    # Folder for generated sample PNGs (clarity improves across epochs).
+    sample_dir: str = "./samples"
+    # How many images to generate for a clarity grid.
+    num_samples: int = 16
+    # Save a sample grid every N epochs (0 = only use sample_epochs).
+    sample_every: int = 0
+    # Milestone epochs for clarity comparison (e.g. 10 blurry → 100 clearer).
+    sample_epochs: List[int] = field(default_factory=lambda: [10, 50, 100])
+    # Clip predicted x0 during reverse sampling for sharper / clearer images.
+    clip_denoised: bool = True
