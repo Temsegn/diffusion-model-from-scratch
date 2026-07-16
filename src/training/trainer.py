@@ -1,23 +1,4 @@
-"""
-DDPM Trainer — full training loop for CIFAR-10.
 
-Training configuration (defaults from TrainConfig):
-  Dataset:      CIFAR-10
-  Epochs:       100
-  Batch size:   128
-  Optimizer:    AdamW
-  Learning rate: 2e-4
-  Timesteps:    1000
-
-Per-batch algorithm:
-  1. Load clean images x0
-  2. Sample random timestep t
-  3. Add noise → (x_t, ε)
-  4. Predict noise with U-Net
-  5. MSE(predicted, ε)
-  6. zero_grad → backward → optimizer.step
-  7. Log loss; save checkpoint at configured epochs
-"""
 
 from __future__ import annotations
 
@@ -77,7 +58,8 @@ class Trainer:
         print(f"[Trainer] params={sum(p.numel() for p in self.model.parameters()):,}")
         print(
             f"[Trainer] epochs={self.cfg.epochs} batch={self.cfg.batch_size} "
-            f"lr={self.cfg.learning_rate} T={self.cfg.timesteps}"
+            f"lr={self.cfg.learning_rate} T={self.cfg.timesteps} "
+            f"save_every={self.cfg.save_every}"
         )
         if self.cfg.backup_dir:
             print(f"[Trainer] backup_dir={self.cfg.backup_dir}")
@@ -120,12 +102,19 @@ class Trainer:
 
         return running / max(n_batches, 1)
 
+    def _should_save_epoch(self, epoch: int) -> bool:
+        """True when this epoch should write a checkpoint."""
+        if self.cfg.save_every and self.cfg.save_every > 0:
+            if epoch % self.cfg.save_every == 0:
+                return True
+        return epoch in self.cfg.save_epochs
+
     def train(self) -> List[float]:
         """
         Full training over `cfg.epochs`.
 
-        Saves checkpoints at epochs listed in `cfg.save_epochs`
-        (default: 10, 50, 100).
+        Saves checkpoints every `cfg.save_every` epochs (default: every epoch)
+        and at any extra milestones in `cfg.save_epochs`.
 
         Returns:
             loss_history — one float per completed epoch
@@ -135,7 +124,7 @@ class Trainer:
             self.loss_history.append(avg_loss)
             print(f"Epoch {epoch}/{self.cfg.epochs} — avg loss: {avg_loss:.6f}")
 
-            if epoch in self.cfg.save_epochs:
+            if self._should_save_epoch(epoch):
                 path = checkpoint_path_for_epoch(self.checkpoint_dir, epoch)
                 save_checkpoint(
                     path=path,

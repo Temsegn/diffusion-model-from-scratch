@@ -47,5 +47,8 @@ class TrainConfig:
     # When set, checkpoints and loss history are copied here after each save
     # and again at the end of training.
     backup_dir: Optional[str] = None
-    # Save full checkpoint at these epoch numbers (1-indexed end of epoch)
+    # Save a checkpoint every N epochs (1 = save after every epoch).
+    # Set to 0 to disable interval saving and use only save_epochs.
+    save_every: int = 1
+    # Extra milestone epochs (always saved even if not on the save_every grid)
     save_epochs: List[int] = field(default_factory=lambda: [10, 50, 100])

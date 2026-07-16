@@ -1,11 +1,4 @@
-"""
-Main CLI entry point for DDPM From Scratch.
 
-Usage:
-    python main.py train [--epochs N] [--batch-size N] [--lr FLOAT]
-
-Training is wired in Phase 6. Other commands (sample / restore) are deferred.
-"""
 
 from __future__ import annotations
 
@@ -49,6 +42,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Dataset download/cache directory",
     )
+    train_p.add_argument(
+        "--save-every",
+        type=int,
+        default=None,
+        help="Save checkpoint every N epochs (default: 1 = every epoch)",
+    )
 
     return parser
 
@@ -77,6 +76,8 @@ def main(argv: list[str] | None = None) -> None:
             cfg.backup_dir = args.backup_dir
         if args.data_root is not None:
             cfg.data_root = args.data_root
+        if args.save_every is not None:
+            cfg.save_every = args.save_every
 
         trainer = Trainer(cfg)
         trainer.train()
